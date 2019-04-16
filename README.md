@@ -19,8 +19,6 @@ The canonical reference is the original paper by
 Note that it assumes a Takagi Sugeno Kang (TSK) style of
 defuzzification rather than the more usual Mamdani style.
 
-I thought the Matlab documentation
-
 
 ### Background: other implementations
 
