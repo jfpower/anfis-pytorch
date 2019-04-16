@@ -1,0 +1,51 @@
+// Block definition (there may be more than one block per file)
+FUNCTION_BLOCK tipper-TSK
+
+// Define input variables
+VAR_INPUT
+    food : REAL;
+    service : REAL;
+END_VAR
+
+// Define output variables
+VAR_OUTPUT
+    tip : REAL;
+END_VAR
+
+// Fuzzify input variable 'food'
+FUZZIFY food
+    RANGE := (0 .. 10)  // JP added range here
+    TERM delicious := (5.5, 0) (10.0, 1);
+    TERM rancid := (0.0, 0) (2.0, 1) (5.5, 0);
+END_FUZZIFY
+
+// Fuzzify input variable 'service'
+FUZZIFY service
+    RANGE := (0 .. 10)  // JP added range here
+    TERM excellent := (0.0, 0) (10.0, 1);
+    TERM good := (0.0, 0) (5.0, 1) (10.0, 0);
+    TERM poor := (0.0, 0) (10.0, 1);
+END_FUZZIFY
+
+// Defuzzify output variable 'tip'
+DEFUZZIFY tip
+    TERM average := 1.6;
+    TERM cheap := 1.9;
+    TERM generous := 0.6;
+    RANGE := (-100.0 .. 100.0);
+    METHOD : COGS;
+    DEFAULT := -100.0;
+END_DEFUZZIFY
+
+RULEBLOCK No1
+// Use 'MIN' for 'AND' (also implicit use 'MAX' for 'or' to fulfill DeMorgan's Law)
+    AND : MIN;
+    ACT : PROD;
+    ACCU : BSUM;
+
+    RULE 1 : IF  food IS rancid OR service IS poor THEN tip IS cheap WITH 1.0;
+    RULE 2 : IF  service IS good THEN tip IS average WITH 1.0;
+    RULE 3 : IF  service IS excellent OR food IS delicious THEN tip IS generous WITH 1.0;
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
