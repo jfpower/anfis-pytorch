@@ -10,7 +10,7 @@ ANFIS is a way of presenting a fuzzy inference system (FIS) as a
 series of numeric layers so that it can be trained like a neural net.
 
 The canonical reference is the original paper by
-[Jyh-Shing Roger Jang/](http://mirlab.org/jang):
+[Jyh-Shing Roger Jang](http://mirlab.org/jang/):
 
 * Jang, J.-S.R. (1993). "ANFIS: adaptive-network-based fuzzy inference
   system". IEEE Transactions on Systems, Man and Cybernetics. 23 (3):
@@ -34,7 +34,9 @@ even if you don't use Matlab.
 There's an implementation for the R language by Cristobal Fresno and Elmer
 A. Fernandez of the
 [BioScience Data Mining Group](http://www.bdmg.com.ar/?page_id=176)
-in Argentina (that URL seems a bit unstable).
+in Argentina (that URL seems a bit unstable, so I'll put a
+[local copy](./Anfis-vignette.pdf)
+here).
 Again, their documentation is very helpful, particularly
 the "ANFIS vignette" report that comes with the distribution.  It
 shows how to run the system using examples from Jang's paper, and gives
