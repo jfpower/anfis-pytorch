@@ -19,6 +19,8 @@ The canonical reference is the original paper by
 Note that it assumes a Takagi Sugeno Kang (TSK) style of
 defuzzification rather than the more usual Mamdani style.
 
+I thought the Matlab documentation
+
 
 ### Background: other implementations
 
@@ -26,24 +28,23 @@ The original C code from Jang that implements the ANFIS system, along
 with is test cases, is available from
 [a repository at CMU](https://www.cs.cmu.edu/Groups/AI/areas/fuzzy/systems/anfis/).
 
-There's a version of
-[ANFIS for Matlab](https://www.mathworks.com/help/fuzzy/neuro-adaptive-learning-and-anfis.html);
-the documentation is quite helpful for understanding how ANFIS works,
+The version most people seem to use is the
+[ANFIS library for Matlab](https://www.mathworks.com/help/fuzzy/anfis.html).
+Their [documentation](https://www.mathworks.com/help/fuzzy/neuro-adaptive-learning-and-anfis.html) is quite helpful for understanding how ANFIS works,
 even if you don't use Matlab.
 
 There's an implementation for the R language by Cristobal Fresno and Elmer
 A. Fernandez of the
 [BioScience Data Mining Group](http://www.bdmg.com.ar/?page_id=176)
-in Argentina (that URL seems a bit unstable, so I'll put a
-[local copy](./Anfis-vignette.pdf)
-here).
+in Argentina (that URL seems a bit unstable).
 Again, their documentation is very helpful, particularly
-the "ANFIS vignette" report that comes with the distribution.  It
+the "ANFIS vignette" report that comes with the distribution (I've put a
+[local copy](./Anfis-vignette.pdf) here).  It
 shows how to run the system using examples from Jang's paper, and gives
 some of the results.
 
-I also found a Python implementation of this R code
-[anfis](https://github.com/twmeggs/anfis) by twmeggs that was helpful
+I also found a re-implementation of this R code in Python 
+[anfis](https://github.com/twmeggs/anfis) by Tim Meggs that was helpful
 in understanding the original R code.
 
 
@@ -69,11 +70,11 @@ in understanding the original R code.
 You need to install Python and PyTorch, nothing special.
 
 I'm using
-(Python 3.6.5](https://www.python.org/downloads/),
-the (Anaconda 4.6.11)[https://www.anaconda.com/distribution/] stack
-and [Torch](https://pytorch.org) version 1.0.1.
+[Python 3.6.5](https://www.python.org/downloads/),
+the [Anaconda 4.6.11](https://www.anaconda.com/distribution/) distribution
+and [PyTorch](https://pytorch.org) version 1.0.1.
 
 
 ### Author ###
 
-* [James Power](http://www.cs.nuim.ie/~jpower/)
+* [James Power](http://www.cs.nuim.ie/~jpower/), Maynooth University.
