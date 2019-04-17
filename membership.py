@@ -36,9 +36,9 @@ def make_gauss_mfs(sigma, mu_list):
 
 class BellMembFunc(torch.nn.Module):
     '''
-        Bell membership function; defined by three parameters:
-            a, the width
-            b, the slope
+        Generalised Bell membership function; defined by three parameters:
+            a, the half-width (at the crossover point)
+            b, controls the slope at the crossover point (which is -b/2a)
             c, the center point
     '''
     def __init__(self, a, b, c):
@@ -59,7 +59,8 @@ class BellMembFunc(torch.nn.Module):
 
     def forward(self, x):
         dist = torch.pow((x - self.c)/self.a, 2)
-        return torch.reciprocal(1 + torch.pow(dist, (self.b**2)))
+        return torch.reciprocal(1 + torch.pow(dist, self.b))
+        #return torch.reciprocal(1 + torch.pow(dist, (self.b**2)))
 
 
 def make_bell_mfs(a, b, clist):

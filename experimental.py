@@ -5,60 +5,12 @@
     @author: James Power <james.power@mu.ie> Apr 12 18:13:10 2019
 """
 
-import itertools
-
-import numpy as np
 import matplotlib.pyplot as plt
 
 import torch
-from torch.utils.data import TensorDataset, DataLoader
+import torch.nn.functional as F
 
 dtype = torch.float
-
-
-def sinc(x, y):
-    '''
-        Sinc is a simple two-input non-linear function
-        used by Jang in section V of his paper (equation 30).
-    '''
-    def s(z):
-        return (1 if z == 0 else np.sin(z) / z)
-    return s(x) * s(y)
-
-
-def make_sinc_xy(batch_size=1024):
-    '''
-        Generates a set of (x, y) values for the sync function.
-        Use the range (-10,10) that was used in sec. V of Jang's paper.
-    '''
-    pts = torch.arange(-10, 11, 2)
-    x = torch.tensor(list(itertools.product(pts, pts)), dtype=dtype)
-    y = torch.tensor([[sinc(*p)] for p in x], dtype=dtype)
-    td = TensorDataset(x, y)
-    return DataLoader(td, batch_size=batch_size, shuffle=True)
-
-
-def make_sinc_xy_large(num_cases=10000, batch_size=1024):
-    '''
-        Generates a set of (x, y) values for the sync function.
-        Uses a large data set so we can test mini-batch in action.
-    '''
-    pts = torch.linspace(-10, 10, int(np.sqrt(num_cases)))
-    x = torch.tensor(list(itertools.product(pts, pts)), dtype=dtype)
-    y = torch.tensor([[sinc(*p)] for p in x], dtype=dtype)
-    td = TensorDataset(x, y)
-    return DataLoader(td, batch_size=batch_size, shuffle=True)
-
-
-def make_sinc_xy2(batch_size=1024):
-    '''
-        A version of sinc with two outputs (sync(x) and 1-sync(x)).
-    '''
-    pts = list(range(-10, 11, 2))
-    x = torch.tensor(list(itertools.product(pts, pts)), dtype=dtype)
-    y = torch.tensor([[sinc(*p), 1-sinc(*p)] for p in x], dtype=dtype)
-    td = TensorDataset(x, y)
-    return DataLoader(td, batch_size=batch_size, shuffle=True)
 
 
 class TwoLayerNet(torch.nn.Module):
@@ -138,9 +90,71 @@ def plotMFs(var_name, fv, x):
     plt.show()
 
 
+def calc_error(y_pred, y_actual):
+    tot_loss = F.mse_loss(y_pred, y_actual)
+    rmse = torch.sqrt(tot_loss).item()
+    perc_loss = 100. * torch.mean(torch.abs((y_pred - y_actual) / y_actual))
+    return(rmse, perc_loss)
+
+
+def test_anfis(model, data, plot=False):
+    '''
+        Do a single forward pass with x and compare with y_actual.
+    '''
+    x, y_actual = data.dataset.tensors
+    if plot:
+        for i, (var_name, fv) in enumerate(model.layer.fuzzify.varmfs.items()):
+            plotMFs(var_name, fv, x[:, i])
+    print('### Testing for {} cases'.format(x.shape[0]))
+    y_pred = model(x)
+    rmse, perc_loss = calc_error(y_pred, y_actual)
+    print('RMS error={:.5f}, percentage={:.2f}%'.format(rmse, perc_loss))
+    if plot:
+        plotResults(y_actual, y_pred)
+
+
+def train_anfis(model, data, epochs=500):
+    '''
+        Train the given model using the given (x,y) data.
+    '''
+    errors = []  # Keep a list of these for plotting afterwards
+    criterion = torch.nn.MSELoss(reduction='sum')
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.99)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    print('### Training for {} epochs, training size = {} cases'.
+          format(epochs, data.dataset.tensors[0].shape[0]))
+    for t in range(epochs):
+        # Process each mini-batch in turn:
+        for x, y_actual in data:
+            # Forward pass: Compute predicted y by passing x to the model
+            with torch.no_grad():
+                model(x)  # Feed data through to get fire strengths
+                model.fit_coeff(x, y_actual)
+            y_pred = model(x)
+            # Compute and print loss
+            loss = criterion(y_pred, y_actual)
+            # Zero gradients, perform a backward pass, and update the weights.
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        # Get the error rate for the whole batch:
+        y_pred = model(data.dataset.tensors[0])
+        rmse, perc_loss = calc_error(y_pred, data.dataset.tensors[1])
+        errors.append(perc_loss)
+        # Print some progress information as the net is trained:
+        if epochs < 30 or t % 10 == 0:
+            print('epoch {:4d}: RMSE={:.5f} {:.2f}%'
+                  .format(t, rmse, perc_loss))
+    # End of training, so graph the results:
+    plotErrors(errors)
+    y_actual = data.dataset.tensors[1]
+    y_pred = model(data.dataset.tensors[0])
+    plotResults(y_actual, y_pred)
+
+
 if __name__ == '__main__':
-    # Predict sinc using a simple two-layer NN, with pretty dismal results:
-    x, y = make_sinc_xy().dataset.tensors
+    x = torch.arange(1, 100, dtype=dtype).unsqueeze(1)
+    y = torch.pow(x, 3)
     model, errors = linear_model(x, y, 100)
     plotErrors(errors)
     plotResults(y, model(x))

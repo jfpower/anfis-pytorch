@@ -132,6 +132,17 @@ class AntecedentLayer(torch.nn.Module):
     def num_rules(self):
         return len(self.indices)
 
+    def show(self, varlist):
+        row_ants = []
+        mf_count = [len(fv.mfdefs) for fv in varlist.values()]
+        for rule_idx in itertools.product(*[range(n) for n in mf_count]):
+            thisrule = []
+            for (varname, fv), i in zip(varlist.items(), rule_idx):
+                thisrule.append('{} is {}'
+                                .format(varname, list(fv.mfdefs.keys())[i]))
+            row_ants.append(' and '.join(thisrule))
+        return row_ants
+
     def forward(self, x):
         ''' Calculate the fire-strength for (the antecedent of) each rule
             x.shape = n_cases * n_in * n_mfs
@@ -175,7 +186,9 @@ class ConsequentLayer(torch.nn.Module):
         if len(new_coeff) == 0:  # None given, so set all to zero
             new_coeff = torch.zeros(c_shape, dtype=dtype)
         else:
-            assert new_coeff.shape == c_shape
+            assert new_coeff.shape == c_shape, \
+                'Coeff shapre should be {}, but is actually {}'\
+                .format(c_shape, new_coeff.shape)
         self._coeff = new_coeff
 
     def fit_coeff(self, x, weights, y_actual):
@@ -188,6 +201,8 @@ class ConsequentLayer(torch.nn.Module):
         '''
         # Append 1 to each list of input vals, for the constant term:
         x_plus = torch.cat([x, torch.ones(x.shape[0], 1)], dim=1)
+        # Can't have value 0 for weights, or LSE won't work:
+        weights[weights == 0] = 1e-9
         # Shape of weighted_x is n_cases * n_rules * (n_in+1)
         weighted_x = torch.einsum('bp, bq -> bpq', weights, x_plus)
         # Squash x and y down to 2D matrices for gels:
@@ -265,6 +280,13 @@ class AnfisNet(torch.nn.Module):
     def fit_coeff(self, x, y_actual):
         '''Assumes a forward pass has just been done (so weights available)'''
         self.layer['consequent'].fit_coeff(x, self.weights, y_actual)
+
+    def show_rules(self):
+        vardefs = self.layer['fuzzify'].varmfs
+        rule_ants = self.layer['rules'].show(vardefs)
+        for i, crow in enumerate(self.layer['consequent'].coeff):
+            print('Rule {}: IF {}'.format(i, rule_ants[i]))
+            print('\tTHEN {}'.format(crow.tolist()))
 
     def forward(self, x):
         '''

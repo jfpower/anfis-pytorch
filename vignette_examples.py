@@ -8,12 +8,11 @@
 '''
 
 import torch
-import torch.nn.functional as F
 
 import membership
 import anfis
-import experimental
-
+from experimental import train_anfis, test_anfis
+import jang_examples
 
 dtype = torch.float
 
@@ -171,90 +170,25 @@ def vignette_ex5_raw():
     return anf
 
 
-def test_anfis(model, x, y_actual, plot=False):
-    '''
-        Do a single forward pass with x and compare with y_actual.
-        Give two comparisons: forward, and forward+MSE, and then plot.
-    '''
-    if plot:
-        for i, (var_name, fv) in enumerate(model.layer.fuzzify.varmfs.items()):
-            experimental.plotMFs(var_name, fv, x[:, i])
-    model.debug = 10
-    criterion = torch.nn.MSELoss(reduction='sum')
-    y_pred = model(x)
-    print('Raw MSError={:.5f}'.format(criterion(y_pred, y_actual)))
-    model.debug = 0
-    model.fit_coeff(x, y_actual)
-    y_pred = model(x)
-    print('Fitted MSError={:.5f}'.format(criterion(y_pred, y_actual)))
-    if plot:
-        experimental.plotResults(y_actual, y_pred)
-
-
-def train_anfis(model, data, epochs=500):
-    '''
-        Train the given model using the given (x,y) data.
-    '''
-    errors = []  # Keep a list of these for plotting afterwards
-    criterion = torch.nn.MSELoss(reduction='sum')
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.99)
-    print('Training for {} epochs, training size = {} cases'.
-          format(epochs, data.dataset.tensors[0].shape[0]))
-    for t in range(epochs):
-        # Process each mini-batch in turn:
-        for x, y_actual in data:
-            # Forward pass: Compute predicted y by passing x to the model
-            with torch.no_grad():
-                model(x)  # Feed data through to get fire strengths
-                model.fit_coeff(x, y_actual)
-            y_pred = model(x)
-            # Compute and print loss
-            loss = criterion(y_pred, y_actual)
-            # Zero gradients, perform a backward pass, and update the weights.
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-        # Get the error rate for the whole batch:
-        y_actual = dl.dataset.tensors[1]
-        y_pred = model(dl.dataset.tensors[0])
-        tot_loss = F.mse_loss(y_pred, y_actual, reduction='sum')
-        perc_loss = 100. * torch.sqrt(tot_loss).item() / y_actual.sum()
-        errors.append(perc_loss)
-        # Print some progress information as the net is trained:
-        if epochs < 30 or t % 10 == 0:
-            print('epoch {:4d}: {:.5f} {:.2f}%'.format(t, tot_loss, perc_loss))
-    # End of training, so graph the results:
-    experimental.plotErrors(errors)
-    y_actual = dl.dataset.tensors[1]
-    y_pred = model(dl.dataset.tensors[0])
-    experimental.plotResults(y_actual, y_pred)
-
-
 if __name__ == '__main__':
-    example = 11
-    if example == 0:
-        # A very small example, just to get started:
-        x = torch.tensor([[0, 0], [1, 1], [2, 2], [-1, -1]], dtype=dtype)
-        y_actual = torch.tensor([[experimental.sinc(*p)] for p in x], dtype=dtype)
+    example = 1
+    if example == 1:
         model = vignette_ex1_R()
-        test_anfis(model, x, y_actual)
-    elif example == 1:
-        x, y_actual = experimental.make_sinc_xy().dataset.tensors
-        model = vignette_ex1_R()
-        test_anfis(model, x, y_actual, True)
+        test_data = jang_examples.make_sinc_xy()
+        test_anfis(model, test_data, True)
     elif example == 11:
-        dl = experimental.make_sinc_xy_large()
         model = vignette_ex1_raw()
-        train_anfis(model, dl, 100)
+        train_data = jang_examples.make_sinc_xy_large()
+        train_anfis(model, train_data, 100)
     elif example == 33:
-        dl = experimental.make_sinc_xy_large()
         model = vignette_ex3_raw()
-        train_anfis(model, dl, 5)
+        train_data = jang_examples.make_sinc_xy_large()
+        train_anfis(model, train_data, 5)
     elif example == 5:
-        x, y_actual = experimental.make_sinc_xy2().dataset.tensors
         model = vignette_ex5_R()
-        test_anfis(model, x, y_actual, True)
+        test_data = jang_examples.make_sinc_xy2()
+        test_anfis(model, test_data, True)
     elif example == 55:
-        dl = experimental.make_sinc_xy2()
         model = vignette_ex5_raw()
-        train_anfis(model, dl, 55)
+        train_data = jang_examples.make_sinc_xy2()
+        train_anfis(model, train_data, 55)
