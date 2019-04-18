@@ -97,23 +97,23 @@ def calc_error(y_pred, y_actual):
     return(rmse, perc_loss)
 
 
-def test_anfis(model, data, plot=False):
+def test_anfis(model, data, show_plots=False):
     '''
         Do a single forward pass with x and compare with y_actual.
     '''
     x, y_actual = data.dataset.tensors
-    if plot:
+    if show_plots:
         for i, (var_name, fv) in enumerate(model.layer.fuzzify.varmfs.items()):
             plotMFs(var_name, fv, x[:, i])
     print('### Testing for {} cases'.format(x.shape[0]))
     y_pred = model(x)
     rmse, perc_loss = calc_error(y_pred, y_actual)
     print('RMS error={:.5f}, percentage={:.2f}%'.format(rmse, perc_loss))
-    if plot:
+    if show_plots:
         plotResults(y_actual, y_pred)
 
 
-def train_anfis(model, data, epochs=500):
+def train_anfis(model, data, epochs=500, show_plots=False):
     '''
         Train the given model using the given (x,y) data.
     '''
@@ -146,10 +146,11 @@ def train_anfis(model, data, epochs=500):
             print('epoch {:4d}: RMSE={:.5f} {:.2f}%'
                   .format(t, rmse, perc_loss))
     # End of training, so graph the results:
-    plotErrors(errors)
-    y_actual = data.dataset.tensors[1]
-    y_pred = model(data.dataset.tensors[0])
-    plotResults(y_actual, y_pred)
+    if show_plots:
+        plotErrors(errors)
+        y_actual = data.dataset.tensors[1]
+        y_pred = model(data.dataset.tensors[0])
+        plotResults(y_actual, y_pred)
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@
     @author: James Power <james.power@mu.ie> Apr 12 18:13:10 2019
 '''
 
+import sys
 import torch
 
 import membership
@@ -17,7 +18,48 @@ import jang_examples
 dtype = torch.float
 
 
-def vignette_ex1_R():
+def vignette_ex1():
+    '''
+        These are the original (untrained) MFS for Vignette example 1.
+    '''
+    invardefs = [
+            ('x0', membership.make_bell_mfs(4, 1, [-10, -3.5, 3.5, 10])),
+            ('x1', membership.make_bell_mfs(4, 1, [-10, -3.5, 3.5, 10])),
+            ]
+    outvars = ['y0']
+    anf = anfis.AnfisNet(invardefs, outvars)
+    return anf
+
+
+def vignette_ex3():
+    '''
+        These are the original (untrained) MFS for Vignette example 3.
+        Like example 1, but now we've switched to Gaussians.
+    '''
+    invardefs = [
+            ('x0', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10])),
+            ('x1', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10]))
+            ]
+    outvars = ['y0']
+    anf = anfis.AnfisNet(invardefs, outvars)
+    return anf
+
+
+def vignette_ex5():
+    '''
+        These are the original (untrained) MFS for Vignette example 5
+        Same MFs as for example 3, but now there are two outputs.
+    '''
+    invardefs = [
+            ('x0', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10])),
+            ('x1', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10]))
+            ]
+    outvars = ['y0', 'y1']
+    anf = anfis.AnfisNet(invardefs, outvars)
+    return anf
+
+
+def vignette_ex1_trained():
     '''
         This is a hard-coded version of Vignette example 1, R version,
         using the mfs/coefficients calculated by R after 57 epochs.
@@ -60,7 +102,7 @@ def vignette_ex1_R():
     return anf
 
 
-def vignette_ex5_R():
+def vignette_ex5_trained():
     '''
         This is a hard-coded version of Vignette example 3, R version,
         using the mfs/coefficients calculated by R after 10 epochs.
@@ -129,66 +171,32 @@ def vignette_ex5_R():
     return anf
 
 
-def vignette_ex1_raw():
-    '''
-        These are the original (untrained) MFS for Vignette example 1.
-    '''
-    invardefs = [
-            ('x0', membership.make_bell_mfs(4, 1, [-10, -3.5, 3.5, 10])),
-            ('x1', membership.make_bell_mfs(4, 1, [-10, -3.5, 3.5, 10])),
-            ]
-    outvars = ['y0']
-    anf = anfis.AnfisNet(invardefs, outvars)
-    return anf
-
-
-def vignette_ex3_raw():
-    '''
-        These are the original (untrained) MFS for Vignette example 3.
-        Like example 1, but now we've switched to Gaussians.
-    '''
-    invardefs = [
-            ('x0', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10])),
-            ('x1', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10]))
-            ]
-    outvars = ['y0']
-    anf = anfis.AnfisNet(invardefs, outvars)
-    return anf
-
-
-def vignette_ex5_raw():
-    '''
-        These are the original (untrained) MFS for Vignette example 5
-        Same MFs as for example 3, but now there are two outputs.
-    '''
-    invardefs = [
-            ('x0', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10])),
-            ('x1', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10]))
-            ]
-    outvars = ['y0', 'y1']
-    anf = anfis.AnfisNet(invardefs, outvars)
-    return anf
-
-
 if __name__ == '__main__':
-    example = 1
-    if example == 1:
-        model = vignette_ex1_R()
+    example = '5T'
+    show_plots = True
+    if len(sys.argv) == 2:  # One arg: example
+        example = sys.argv[1].upper()
+        show_plots = False
+    print('Example {} from Vignette paper'.format(example))
+    if example == '1':
+        model = vignette_ex1()
+        train_data = jang_examples.make_sinc_xy_large()
+        train_anfis(model, train_data, 100, show_plots)
+    elif example == '1T':
+        model = vignette_ex1_trained()
         test_data = jang_examples.make_sinc_xy()
-        test_anfis(model, test_data, True)
-    elif example == 11:
-        model = vignette_ex1_raw()
+        test_anfis(model, test_data, show_plots)
+    elif example == '3':
+        model = vignette_ex3()
         train_data = jang_examples.make_sinc_xy_large()
-        train_anfis(model, train_data, 100)
-    elif example == 33:
-        model = vignette_ex3_raw()
-        train_data = jang_examples.make_sinc_xy_large()
-        train_anfis(model, train_data, 5)
-    elif example == 5:
-        model = vignette_ex5_R()
-        test_data = jang_examples.make_sinc_xy2()
-        test_anfis(model, test_data, True)
-    elif example == 55:
-        model = vignette_ex5_raw()
+        train_anfis(model, train_data, 200, show_plots)
+    elif example == '5':
+        model = vignette_ex5()
         train_data = jang_examples.make_sinc_xy2()
-        train_anfis(model, train_data, 55)
+        train_anfis(model, train_data, 55, show_plots)
+    elif example == '5T':
+        model = vignette_ex5_trained()
+        test_data = jang_examples.make_sinc_xy2()
+        test_anfis(model, test_data, show_plots)
+    else:
+        print('ERROR - no such example')

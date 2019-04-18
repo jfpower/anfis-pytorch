@@ -5,6 +5,7 @@
     @author: James Power <james.power@mu.ie> Apr 12 18:13:10 2019
 '''
 
+import sys
 import itertools
 import numpy as np
 
@@ -281,32 +282,39 @@ def jang_ex4_data(filename):
 
 
 if __name__ == '__main__':
-    example = 2
+    example = 1
+    show_plots = True
+    if len(sys.argv) == 2:  # One arg: example
+        example = int(sys.argv[1])
+        show_plots = False
+    print('Example {} from Jang\'s paper'.format(example))
     if example == 1:
         model = ex1_model()
         train_data = make_sinc_xy()
-        train_anfis(model, train_data, epochs=500)
+        train_anfis(model, train_data, 500, show_plots)
     elif example == 2:
         model = ex2_model()
         train_data = ex2_training_data()
-        train_anfis(model, train_data, epochs=200)
+        train_anfis(model, train_data, 200, show_plots)
         test_data = ex2_testing_data()
-        test_anfis(model, test_data, True)
+        test_anfis(model, test_data, show_plots)
     elif example == 3:
         model = ex3_model()
         train_data = ex3_training_data()
-        train_anfis(model, train_data, epochs=500)
+        train_anfis(model, train_data, 500, show_plots)
         test_data = ex3_testing_data()
-        test_anfis(model, test_data, True)
+        test_anfis(model, test_data, show_plots)
     elif example == 4:
         model = ex4_model()
         train_data = jang_ex4_data('jang-example4-data.trn')
-        train_anfis(model, train_data, epochs=500)
+        train_anfis(model, train_data, 500, show_plots)
         test_data = jang_ex4_data('jang-example4-data.chk')
-        test_anfis(model, test_data, True)
+        test_anfis(model, test_data, show_plots)
     elif example == 44:
         model = jang_ex4_trained_model()
         test_data = jang_ex4_data('jang-example4-data.trn')
-        test_anfis(model, test_data, True)
+        test_anfis(model, test_data, show_plots)
         test_data = jang_ex4_data('jang-example4-data.chk')
-        test_anfis(model, test_data, True)
+        test_anfis(model, test_data, show_plots)
+    else:
+        print('ERROR - no such example')
