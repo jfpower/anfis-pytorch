@@ -48,16 +48,36 @@ in understanding the original R code.
 
 ### Navigation
 
-* [test-anfis.py](./test-anfis.py) If you can run this, then everything should be
-  working.  This file contains some test cases from Jang's paper.
-  
-* [anfis.py](./anfis.py) This is where the layers of the ANFIS system are defined as
-  Torch modules.
+The ANFIS framework is mainly in three files:
 
-* [membership.py](./membership.py) At the moment I only have Bell and Gaussian membership
-  functions, but any others will go in here too.
+* [anfis.py](./anfis.py) This is where the layers of the ANFIS system
+  are defined as Torch modules.
 
-* [experimental.py](./experimental.py) Just some simple routines to load data and plot graphs etc.
+* [membership.py](./membership.py) At the moment I only have Bell and
+  Gaussian membership functions, but any others will go in here too.
+
+* [experimental.py](./experimental.py) The experimental infrastructure
+  to train and test the FIS, and to plot some graphs etc.
+
+
+There are then some runnable examples:
+
+* [jang_examples.py](./jang_examples.py) these are four
+  examples from Jang's paper (based partly on the details in the
+  paper, and particle on the example folders in his source code
+  distribution).
+
+* [vignette_examples.py](./vignette_examples.py) these are
+  three examples from the Vignette paper.  Two of these use Gaussians
+  rather than Bell MFs.
+
+* [simple_examples.py](./simple_examples.py) - a few other simple
+  examples.
+
+
+
+
+
 
 * [simple-tests.py](./simple-tests.py) Even simpler test cases, you
   can safely ignore these.
