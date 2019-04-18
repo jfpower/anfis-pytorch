@@ -41,7 +41,7 @@ def tipper_ex(batch_size=121):
             ('service', make_gauss_mfs(5, [-7.5, 0, 7.5])),
             ]
     outvars = ['tip1', 'tip2']
-    anf = anfis.AnfisNet(invardefs, outvars)
+    anf = anfis.AnfisNet('Tipper', invardefs, outvars)
     test_xs = torch.rand((batch_size, len(invardefs)))
     y_pred = anf.forward(test_xs)
     return y_pred
@@ -68,7 +68,7 @@ def vignette_ex1_py():
                     ])
             ]
     outvars = ['y0']
-    anf = anfis.AnfisNet(invardefs, outvars)
+    anf = anfis.AnfisNet('', invardefs, outvars)
     rules = torch.tensor([
             [[-0.05, -0.05, -1.40]],
             [[-0.05, -1.40, +0.11]],

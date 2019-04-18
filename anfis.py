@@ -39,6 +39,13 @@ class FuzzifyVariable(torch.nn.Module):
         '''Return the actual number of MFs (ignoring any padding)'''
         return len(self.mfdefs)
 
+    def members(self):
+        '''
+            Return an iterator over this variables's membership functions.
+            Yields tuples of the form (mf-name, MembFunc-object)
+        '''
+        return self.mfdefs.items()
+
     def pad_to(self, new_size):
         '''
             Will pad result of forward-pass (with zeros) so it has new_size,
@@ -243,7 +250,7 @@ class WeightedSumLayer(torch.nn.Module):
                 tsk.shape: n_cases * n_out * n_rules
              y_pred.shape: n_cases * n_out
         '''
-        # Add a dimension to weights to ge the bmm to work:
+        # Add a dimension to weights to get the bmm to work:
         y_pred = torch.bmm(tsk, weights.unsqueeze(2))
         return y_pred.squeeze(2)
 
@@ -254,12 +261,13 @@ class AnfisNet(torch.nn.Module):
         The forward pass maps inputs to outputs based on current settings, 
         and then fit_coeff will adjust the TSK coeff using LSE.
     '''
-    def __init__(self, invardefs, outvarnames):
+    def __init__(self, description, invardefs, outvarnames):
         super(AnfisNet, self).__init__()
+        self.description = description
+        self.outvarnames = outvarnames
         varnames = [v for v, _ in invardefs]
         mfdefs = [FuzzifyVariable(mfs) for _, mfs in invardefs]
         self.num_in = len(invardefs)
-        self.num_out = len(outvarnames)
         self.num_rules = np.prod([len(mfs) for _, mfs in invardefs])
         self.layer = torch.nn.ModuleDict(OrderedDict([
             ('fuzzify', FuzzifyLayer(mfdefs, varnames)),
@@ -269,6 +277,10 @@ class AnfisNet(torch.nn.Module):
             ('weighted_sum', WeightedSumLayer()),
             ]))
 
+    @property
+    def num_out(self):
+        return len(self.outvarnames)
+    
     @property
     def coeff(self):
         return self.layer['consequent'].coeff
@@ -280,6 +292,19 @@ class AnfisNet(torch.nn.Module):
     def fit_coeff(self, x, y_actual):
         '''Assumes a forward pass has just been done (so weights available)'''
         self.layer['consequent'].fit_coeff(x, self.weights, y_actual)
+
+    def input_variables(self):
+        '''
+            Return an iterator over this system's input variables.
+            Yields tuples of the form (var-name, FuzzifyVariable-object)
+        '''
+        return self.layer['fuzzify'].varmfs.items()
+
+    def output_variables(self):
+        '''
+            Return an list of the names of the system's output variables.
+        '''
+        return self.outvarnames
 
     def show_rules(self):
         vardefs = self.layer['fuzzify'].varmfs

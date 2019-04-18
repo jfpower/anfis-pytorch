@@ -28,6 +28,9 @@ class GaussMembFunc(torch.nn.Module):
     def forward(self, x):
         return torch.exp(-torch.pow(x - self.mu, 2) / (2 * self.sigma**2))
 
+    def pretty(self):
+        return 'GaussMembFunc {} {}'.format(self.mu, self.sigma)
+
 
 def make_gauss_mfs(sigma, mu_list):
     '''Return a list of gaussian mfs, same sigma, list of means'''
@@ -60,9 +63,15 @@ class BellMembFunc(torch.nn.Module):
     def forward(self, x):
         dist = torch.pow((x - self.c)/self.a, 2)
         return torch.reciprocal(1 + torch.pow(dist, self.b))
-        #return torch.reciprocal(1 + torch.pow(dist, (self.b**2)))
+
+    def pretty(self):
+        return 'BellMembFunc {} {} {}'.format(self.a, self.b, self.c)
 
 
 def make_bell_mfs(a, b, clist):
     '''Return a list of bell mfs, same (a,b), list of centers'''
     return [BellMembFunc(a, b, c) for c in clist]
+
+
+# Make the classes available via (controlled) reflection:
+get_class_for = {n: globals()[n] for n in ['BellMembFunc', 'GaussMembFunc']}

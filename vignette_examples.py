@@ -27,7 +27,7 @@ def vignette_ex1():
             ('x1', membership.make_bell_mfs(4, 1, [-10, -3.5, 3.5, 10])),
             ]
     outvars = ['y0']
-    anf = anfis.AnfisNet(invardefs, outvars)
+    anf = anfis.AnfisNet('Vignette Example 1', invardefs, outvars)
     return anf
 
 
@@ -41,7 +41,7 @@ def vignette_ex3():
             ('x1', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10]))
             ]
     outvars = ['y0']
-    anf = anfis.AnfisNet(invardefs, outvars)
+    anf = anfis.AnfisNet('Vignette Example 3', invardefs, outvars)
     return anf
 
 
@@ -55,7 +55,7 @@ def vignette_ex5():
             ('x1', membership.make_gauss_mfs(2, [-10, -5, 0, 5, 10]))
             ]
     outvars = ['y0', 'y1']
-    anf = anfis.AnfisNet(invardefs, outvars)
+    anf = anfis.AnfisNet('Vignette Example 5', invardefs, outvars)
     return anf
 
 
@@ -79,7 +79,7 @@ def vignette_ex1_trained():
                     ])
             ]
     outvars = ['y0']
-    anf = anfis.AnfisNet(invardefs, outvars)
+    anf = anfis.AnfisNet('Vignette Example 1 (R version)', invardefs, outvars)
     rules = torch.tensor([
         [[-0.03990093, -0.03990093, -0.85724840]],
         [[0.12247975,  -0.02936995,  1.22666375]],
@@ -124,8 +124,8 @@ def vignette_ex5_trained():
                     ])
             ]
     outvars = ['y0', 'y1']
-    anf = anfis.AnfisNet(invardefs, outvars)
-    y1_coeff = torch.tensor([
+    anf = anfis.AnfisNet('Vignette Example 5 (R version)', invardefs, outvars)
+    y0_coeff = torch.tensor([
       4.614289e-03, 4.614289e-03, 7.887969e-02, -1.349178e-02,
       -9.089431e-03, -1.694363e-01, 7.549623e-02, 5.862259e-14,
       6.962636e-01, -1.349178e-02, 9.089431e-03, -1.694363e-01,
@@ -146,7 +146,7 @@ def vignette_ex5_trained():
       6.962636e-01, 1.349178e-02, 9.089431e-03, -1.694363e-01,
       -4.614289e-03, -4.614289e-03, 7.887969e-02,
         ], dtype=dtype).view(25, 3)
-    y2_coeff = torch.tensor([
+    y1_coeff = torch.tensor([
      -1.563721e-02, 1.563721e-02, 7.029522e-01, 6.511928e-03,
      -2.049419e-03, 1.070100e+00, 8.517531e-02, 2.918635e-13,
      -2.147609e-01, 6.511928e-03, 2.049419e-03, 1.070100e+00,
@@ -167,7 +167,7 @@ def vignette_ex5_trained():
      -2.147609e-01, 6.511928e-03, 2.049419e-03, 1.070100e+00,
      -1.563721e-02, 1.563721e-02, 7.029522e-01,
         ], dtype=dtype).view(25, 3)
-    anf.coeff = torch.stack([y1_coeff, y2_coeff], dim=1)
+    anf.coeff = torch.stack([y0_coeff, y1_coeff], dim=1)
     return anf
 
 

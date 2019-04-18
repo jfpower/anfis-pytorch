@@ -70,14 +70,14 @@ def make_sinc_xy2(batch_size=1024):
 
 def ex1_model():
     '''
-        These are the original (untrained) MFS for Vignette example 1.
+        These are the original (untrained) MFS for Jang's example 1.
     '''
     invardefs = [
             ('x0', make_bell_mfs(3.33333, 2, [-10, -3.333333, 3.333333, 10])),
             ('x1', make_bell_mfs(3.33333, 2, [-10, -3.333333, 3.333333, 10])),
             ]
     outvars = ['y0']
-    anf = anfis.AnfisNet(invardefs, outvars)
+    anf = anfis.AnfisNet('Jang\'s example 1', invardefs, outvars)
     return anf
 
 
@@ -110,7 +110,7 @@ def ex2_model():
             ('z', make_bell_mfs(2.5, 2, [1, 6])),
             ]
     outvars = ['output']
-    model = anfis.AnfisNet(invardefs, outvars)
+    model = anfis.AnfisNet('Jang\'s example 2', invardefs, outvars)
     return model
 
 
@@ -148,7 +148,7 @@ def ex3_model(mfnum=7):
         centers = np.linspace(-1, 1, mfnum)
     invardefs = [('k', make_bell_mfs(0.249980, 4, centers))]
     outvars = ['y']
-    model = anfis.AnfisNet(invardefs, outvars)
+    model = anfis.AnfisNet('Jang\'s example 3', invardefs, outvars)
     return model
 
 
@@ -214,7 +214,7 @@ def ex4_model():
             ('x',    make_bell_mfs(0.444045, 2, [0.425606, 1.313696])),
             ]
     outvars = ['xp6']
-    model = anfis.AnfisNet(invardefs, outvars)
+    model = anfis.AnfisNet('Jang\'s example 4', invardefs, outvars)
     return model
 
 
@@ -241,7 +241,7 @@ def jang_ex4_trained_model():
             ('x',    [BellMembFunc(*mfs[6]), BellMembFunc(*mfs[7])]),
             ]
     outvars = ['xp6']
-    model = anfis.AnfisNet(invardefs, outvars)
+    model = anfis.AnfisNet('Jang\'s example 4 (trained)', invardefs, outvars)
     # Jang calls this "the parameter matrix C" on pg 683:
     coeff = torch.tensor([
         [0.2167,   0.7233, -0.0365,  0.5433,  0.0276],
@@ -282,35 +282,35 @@ def jang_ex4_data(filename):
 
 
 if __name__ == '__main__':
-    example = 1
+    example = '1'
     show_plots = True
     if len(sys.argv) == 2:  # One arg: example
-        example = int(sys.argv[1])
+        example = sys.argv[1]
         show_plots = False
     print('Example {} from Jang\'s paper'.format(example))
-    if example == 1:
+    if example == '1':
         model = ex1_model()
         train_data = make_sinc_xy()
         train_anfis(model, train_data, 500, show_plots)
-    elif example == 2:
+    elif example == '2':
         model = ex2_model()
         train_data = ex2_training_data()
         train_anfis(model, train_data, 200, show_plots)
         test_data = ex2_testing_data()
         test_anfis(model, test_data, show_plots)
-    elif example == 3:
+    elif example == '3':
         model = ex3_model()
         train_data = ex3_training_data()
         train_anfis(model, train_data, 500, show_plots)
         test_data = ex3_testing_data()
         test_anfis(model, test_data, show_plots)
-    elif example == 4:
+    elif example == '4':
         model = ex4_model()
         train_data = jang_ex4_data('jang-example4-data.trn')
         train_anfis(model, train_data, 500, show_plots)
         test_data = jang_ex4_data('jang-example4-data.chk')
         test_anfis(model, test_data, show_plots)
-    elif example == 44:
+    elif example == '4T':
         model = jang_ex4_trained_model()
         test_data = jang_ex4_data('jang-example4-data.trn')
         test_anfis(model, test_data, show_plots)
