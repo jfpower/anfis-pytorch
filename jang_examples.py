@@ -291,7 +291,7 @@ if __name__ == '__main__':
     if example == '1':
         model = ex1_model()
         train_data = make_sinc_xy()
-        train_anfis(model, train_data, 500, show_plots)
+        train_anfis(model, train_data, 2, show_plots)
     elif example == '2':
         model = ex2_model()
         train_data = ex2_training_data()

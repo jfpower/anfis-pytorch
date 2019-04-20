@@ -71,16 +71,6 @@ There are then some runnable examples:
   three examples from the Vignette paper.  Two of these use Gaussians
   rather than Bell MFs.
 
-* [simple_examples.py](./simple_examples.py) - a few other simple
-  examples.
-
-
-
-
-
-
-* [simple-tests.py](./simple-tests.py) Even simpler test cases, you
-  can safely ignore these.
 
 
 ### Installation
