@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 import torch
 import torch.nn.functional as F
+from torch import autograd
 
 dtype = torch.float
 
@@ -75,7 +76,7 @@ def plotResults(y_actual, y_predicted):
     plt.show()
 
 
-def plotMFs(var_name, fv, x):
+def _plot_mfs(var_name, fv, x):
     '''
         A simple utility function to plot the MFs for a variable.
         Supply the variable name, MFs and a set of x values to plot.
@@ -90,11 +91,16 @@ def plotMFs(var_name, fv, x):
     plt.show()
 
 
+def plot_all_mfs(model, x):
+    for i, (var_name, fv) in enumerate(model.layer.fuzzify.varmfs.items()):
+        _plot_mfs(var_name, fv, x[:, i])
+
+
 def calc_error(y_pred, y_actual):
     tot_loss = F.mse_loss(y_pred, y_actual)
     rmse = torch.sqrt(tot_loss).item()
-    perc_loss = 100. * torch.mean(torch.abs((y_pred - y_actual) / y_actual))
-    return(rmse, perc_loss)
+    perc_loss = torch.mean(100. * torch.abs((y_pred - y_actual) / y_actual))
+    return(tot_loss, rmse, perc_loss)
 
 
 def test_anfis(model, data, show_plots=False):
@@ -103,33 +109,28 @@ def test_anfis(model, data, show_plots=False):
     '''
     x, y_actual = data.dataset.tensors
     if show_plots:
-        for i, (var_name, fv) in enumerate(model.layer.fuzzify.varmfs.items()):
-            plotMFs(var_name, fv, x[:, i])
+        plot_all_mfs(model, x)
     print('### Testing for {} cases'.format(x.shape[0]))
     y_pred = model(x)
-    rmse, perc_loss = calc_error(y_pred, y_actual)
-    print('RMS error={:.5f}, percentage={:.2f}%'.format(rmse, perc_loss))
+    mse, rmse, perc_loss = calc_error(y_pred, y_actual)
+    print('MS error={:.5f}, RMS error={:.5f}, percentage={:.2f}%'
+          .format(mse, rmse, perc_loss))
     if show_plots:
         plotResults(y_actual, y_pred)
 
 
-def train_anfis(model, data, epochs=500, show_plots=False):
+def train_anfis_with(model, data, optimizer, criterion,
+                     epochs=500, show_plots=False):
     '''
         Train the given model using the given (x,y) data.
     '''
     errors = []  # Keep a list of these for plotting afterwards
-    criterion = torch.nn.MSELoss(reduction='sum')
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.99)
     # optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     print('### Training for {} epochs, training size = {} cases'.
           format(epochs, data.dataset.tensors[0].shape[0]))
     for t in range(epochs):
         # Process each mini-batch in turn:
         for x, y_actual in data:
-            # Forward pass: Compute predicted y by passing x to the model
-            with torch.no_grad():
-                model(x)  # Feed data through to get fire strengths
-                model.fit_coeff(x, y_actual)
             y_pred = model(x)
             # Compute and print loss
             loss = criterion(y_pred, y_actual)
@@ -137,20 +138,33 @@ def train_anfis(model, data, epochs=500, show_plots=False):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        # Epoch ending, so now fit the coefficients based on all data:
+        x, y_actual = data.dataset.tensors
+        with torch.no_grad():
+            model.fit_coeff(x, y_actual)
         # Get the error rate for the whole batch:
-        y_pred = model(data.dataset.tensors[0])
-        rmse, perc_loss = calc_error(y_pred, data.dataset.tensors[1])
+        y_pred = model(x)
+        mse, rmse, perc_loss = calc_error(y_pred, y_actual)
         errors.append(perc_loss)
         # Print some progress information as the net is trained:
         if epochs < 30 or t % 10 == 0:
-            print('epoch {:4d}: RMSE={:.5f} {:.2f}%'
-                  .format(t, rmse, perc_loss))
+            print('epoch {:4d}: MSE={:.5f}, RMSE={:.5f} ={:.2f}%'
+                  .format(t, mse, rmse, perc_loss))
     # End of training, so graph the results:
     if show_plots:
         plotErrors(errors)
         y_actual = data.dataset.tensors[1]
         y_pred = model(data.dataset.tensors[0])
         plotResults(y_actual, y_pred)
+
+
+def train_anfis(model, data, epochs=500, show_plots=False):
+    '''
+        Train the given model using the given (x,y) data.
+    '''
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.99)
+    criterion = torch.nn.MSELoss(reduction='sum')
+    train_anfis_with(model, data, optimizer, criterion, epochs, show_plots=show_plots)
 
 
 if __name__ == '__main__':

@@ -99,7 +99,7 @@ def show(model, fh=sys.stdout):
         for mfname, mfdef in fv.members():
             print('{}  # {}.{}'.format(mfdef.pretty(), varname, mfname),
                   file=fh)
-    # Output variables and rules:
+    # Output variables and rule coefficients:
     onames = model.output_variables()
     print('#', _OUT_STR, ' '.join(onames), file=fh)
     for rnum, rule in enumerate(model.coeff):

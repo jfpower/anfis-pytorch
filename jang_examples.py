@@ -68,6 +68,7 @@ def make_sinc_xy2(batch_size=1024):
     return DataLoader(td, batch_size=batch_size, shuffle=True)
 
 
+
 def ex1_model():
     '''
         These are the original (untrained) MFS for Jang's example 1.
@@ -291,7 +292,7 @@ if __name__ == '__main__':
     if example == '1':
         model = ex1_model()
         train_data = make_sinc_xy()
-        train_anfis(model, train_data, 2, show_plots)
+        train_anfis(model, train_data, 20, show_plots)
     elif example == '2':
         model = ex2_model()
         train_data = ex2_training_data()

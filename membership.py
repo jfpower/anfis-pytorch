@@ -8,9 +8,13 @@
 
 import torch
 
+from anfis import AnfisNet
+
 
 def _mk_param(val):
     '''Make a torch parameter from a scalar value'''
+    if isinstance(val, torch.Tensor):
+        val = val.item()
     return torch.nn.Parameter(torch.tensor(val, dtype=torch.float))
 
 
@@ -26,7 +30,8 @@ class GaussMembFunc(torch.nn.Module):
         self.register_parameter('sigma', _mk_param(sigma))
 
     def forward(self, x):
-        return torch.exp(-torch.pow(x - self.mu, 2) / (2 * self.sigma**2))
+        val = torch.exp(-torch.pow(x - self.mu, 2) / (2 * self.sigma**2))
+        return val
 
     def pretty(self):
         return 'GaussMembFunc {} {}'.format(self.mu, self.sigma)
@@ -73,5 +78,114 @@ def make_bell_mfs(a, b, clist):
     return [BellMembFunc(a, b, c) for c in clist]
 
 
+class TriangularMembFunc(torch.nn.Module):
+    '''
+        Triangular membership function; defined by three parameters:
+            a, left foot, mu(x) = 0
+            b, midpoint, mu(x) = 1
+            c, right foot, mu(x) = 0
+    '''
+    def __init__(self, a, b, c):
+        super(TriangularMembFunc, self).__init__()
+        assert a <= b and b <= c,\
+            'Triangular parameters: must have a <= b <= c.'
+        self.register_parameter('a', _mk_param(a))
+        self.register_parameter('b', _mk_param(b))
+        self.register_parameter('c', _mk_param(c))
+
+    def forward(self, x):
+        return torch.where(
+            torch.ByteTensor(self.a < x) & torch.ByteTensor(x <= self.b),
+            (x - self.a) / (self.b - self.a),
+            # else
+            torch.where(
+                torch.ByteTensor(self.b < x) & torch.ByteTensor(x <= self.c),
+                (self.c - x) / (self.c - self.b),
+                torch.zeros_like(x, requires_grad=True)))
+
+    def pretty(self):
+        return 'TriangularMembFunc {} {} {}'.format(self.a, self.b, self.c)
+
+
+def make_tri_mfs(width, clist):
+    '''Return a list of triangular mfs, same width, list of centers'''
+    return [TriangularMembFunc(c-width/2, c, c+width/2) for c in clist]
+
+
+class TrapezoidalMembFunc(torch.nn.Module):
+    '''
+        Triangular membership function; defined by three parameters:
+            a, left foot, mu(x) = 0
+            b, midpoint, mu(x) = 1
+            c, right foot, mu(x) = 0
+    '''
+    def __init__(self, a, b, c, d):
+        super(TrapezoidalMembFunc, self).__init__()
+        assert a <= b and b <= c and c <= d,\
+            'Trapezoidal parameters: must have a <= b <= c <= d.'
+        self.register_parameter('a', _mk_param(a))
+        self.register_parameter('b', _mk_param(b))
+        self.register_parameter('c', _mk_param(c))
+        self.register_parameter('d', _mk_param(d))
+
+    @staticmethod
+    def center_at(width, slope, center):
+        '''
+            An alternative way of creating a trap mf
+        '''
+        b = center - width / 2
+        a = b - slope
+        c = center + width / 2
+        d = c + slope
+        return TrapezoidalMembFunc(a, b, c, d)
+
+    def forward(self, x):
+        yvals = torch.zeros_like(x)
+        if self.a < self.b:
+            incr = torch.ByteTensor(self.a < x) & torch.ByteTensor(x <= self.b)
+            yvals[incr] = (x[incr] - self.a) / (self.b - self.a)
+        if self.b < self.c:
+            decr = torch.ByteTensor(self.b < x) & torch.ByteTensor(x < self.c)
+            yvals[decr] = 1
+        if self.c < self.d:
+            decr = torch.ByteTensor(self.c <= x) & torch.ByteTensor(x < self.d)
+            yvals[decr] = (self.d - x[decr]) / (self.d - self.c)
+        return yvals
+
+    def pretty(self):
+        return 'TrapezoidalMembFunc {} {} {}'.\
+            format(self.a, self.b, self.c, self.d)
+
+
+def make_trap_mfs(width, slope, clist):
+    '''Return a list of bell mfs, same (a,b), list of centers'''
+    return [TrapezoidalMembFunc.center_at(width, slope, c) for c in clist]
+
+
 # Make the classes available via (controlled) reflection:
-get_class_for = {n: globals()[n] for n in ['BellMembFunc', 'GaussMembFunc']}
+get_class_for = {n: globals()[n]
+                 for n in ['BellMembFunc',
+                           'GaussMembFunc',
+                           'TriangularMembFunc',
+                           'TrapezoidalMembFunc',
+                           ]}
+
+
+def make_anfis(x, num_mfs=5, num_out=1, hybrid=True):
+    '''
+        Make an ANFIS model, auto-calculating the (Gaussian) MFs.
+        I need the x-vals to calculate a range and spread for the MFs.
+        Variables get named x0, x1, x2,... and y0, y1, y2 etc.
+    '''
+    num_invars = x.shape[1]
+    minvals, _ = torch.min(x, dim=0)
+    maxvals, _ = torch.max(x, dim=0)
+    ranges = maxvals-minvals
+    invars = []
+    for i in range(num_invars):
+        sigma = ranges[i] / num_mfs
+        mulist = torch.linspace(minvals[i], maxvals[i], num_mfs).tolist()
+        invars.append(('x{}'.format(i), make_gauss_mfs(sigma, mulist)))
+    outvars = ['y{}'.format(i) for i in range(num_out)]
+    model = AnfisNet('Simple classifier', invars, outvars, hybrid=hybrid)
+    return model
