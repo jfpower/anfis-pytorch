@@ -93,6 +93,13 @@ class TriangularMembFunc(torch.nn.Module):
         self.register_parameter('b', _mk_param(b))
         self.register_parameter('c', _mk_param(c))
 
+    @staticmethod
+    def isosceles(width, center):
+        '''
+            Construct a triangle MF with given width-of-base and center
+        '''
+        return TriangularMembFunc(center-width, center, center+width)
+
     def forward(self, x):
         return torch.where(
             torch.ByteTensor(self.a < x) & torch.ByteTensor(x <= self.b),
@@ -114,10 +121,13 @@ def make_tri_mfs(width, clist):
 
 class TrapezoidalMembFunc(torch.nn.Module):
     '''
-        Triangular membership function; defined by three parameters:
-            a, left foot, mu(x) = 0
-            b, midpoint, mu(x) = 1
-            c, right foot, mu(x) = 0
+        Trapezoidal membership function; defined by four parameters.
+        Membership is defined as:
+            to the left of a: always 0
+            from a to b: slopes from 0 up to 1
+            from b to c: always 1
+            from c to d: slopes from 1 down to 0
+            to the right of d: always 0
     '''
     def __init__(self, a, b, c, d):
         super(TrapezoidalMembFunc, self).__init__()
@@ -129,15 +139,30 @@ class TrapezoidalMembFunc(torch.nn.Module):
         self.register_parameter('d', _mk_param(d))
 
     @staticmethod
-    def center_at(width, slope, center):
+    def symmetric(topwidth, slope, midpt):
         '''
-            An alternative way of creating a trap mf
+            Make a (symmetric) trapezoid mf, given
+                topwidth: length of top (when mu == 1)
+                slope: extra length at either side for bottom
+                midpt: center point of trapezoid
         '''
-        b = center - width / 2
-        a = b - slope
-        c = center + width / 2
-        d = c + slope
-        return TrapezoidalMembFunc(a, b, c, d)
+        b = midpt - topwidth / 2
+        c = midpt + topwidth / 2
+        return TrapezoidalMembFunc(b - slope, b, c, c + slope)
+
+    @staticmethod
+    def rectangle(left, right):
+        '''
+            Make a Trapezoidal MF with vertical sides (so a==b and c==d)
+        '''
+        return TrapezoidalMembFunc(left, left, right, right)
+
+    @staticmethod
+    def triangle(left, midpt, right):
+        '''
+            Make a triangle-shaped MF as a special case of a Trapezoidal MF
+        '''
+        return TrapezoidalMembFunc(left, midpt, midpt, right)
 
     def forward(self, x):
         yvals = torch.zeros_like(x)
@@ -153,13 +178,13 @@ class TrapezoidalMembFunc(torch.nn.Module):
         return yvals
 
     def pretty(self):
-        return 'TrapezoidalMembFunc {} {} {}'.\
+        return 'TrapezoidalMembFunc a={} b={} c={} d={}'.\
             format(self.a, self.b, self.c, self.d)
 
 
 def make_trap_mfs(width, slope, clist):
-    '''Return a list of bell mfs, same (a,b), list of centers'''
-    return [TrapezoidalMembFunc.center_at(width, slope, c) for c in clist]
+    '''Return a list of symmetric Trap mfs, same (w,s), list of centers'''
+    return [TrapezoidalMembFunc.symmetric(width, slope, c) for c in clist]
 
 
 # Make the classes available via (controlled) reflection:

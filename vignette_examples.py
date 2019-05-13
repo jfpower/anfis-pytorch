@@ -215,7 +215,7 @@ def vignette_ex5_trained():
 
 
 if __name__ == '__main__':
-    example = '3b'
+    example = '5'
     show_plots = True
     if len(sys.argv) == 2:  # One arg: example
         example = sys.argv[1].upper()
@@ -247,15 +247,12 @@ if __name__ == '__main__':
         model = vignette_ex3b()
         train_data = jang_examples.make_sinc_xy_large(1000)
         plot_all_mfs(model, train_data.dataset.tensors[0])
-        optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.99)
-        criterion = torch.nn.MSELoss(reduction='sum')
-        train_anfis_with(model, train_data, optimizer, criterion, 250, show_plots)
-        #train_anfis(model, train_data, 250, show_plots)
+        train_anfis(model, train_data, 250, show_plots)
         plot_all_mfs(model, train_data.dataset.tensors[0])
     elif example == '5':
         model = vignette_ex5()
         train_data = jang_examples.make_sinc_xy2()
-        train_anfis(model, train_data, 55, show_plots)
+        train_anfis(model, train_data, 5, show_plots)
     elif example == '5T':
         model = vignette_ex5_trained()
         test_data = jang_examples.make_sinc_xy2()

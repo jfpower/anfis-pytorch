@@ -97,9 +97,10 @@ def plot_all_mfs(model, x):
 
 
 def calc_error(y_pred, y_actual):
-    tot_loss = F.mse_loss(y_pred, y_actual)
-    rmse = torch.sqrt(tot_loss).item()
-    perc_loss = torch.mean(100. * torch.abs((y_pred - y_actual) / y_actual))
+    with torch.no_grad():
+        tot_loss = F.mse_loss(y_pred, y_actual)
+        rmse = torch.sqrt(tot_loss).item()
+        perc_loss = torch.mean(100. * torch.abs((y_pred - y_actual) / y_actual))
     return(tot_loss, rmse, perc_loss)
 
 
@@ -164,7 +165,7 @@ def train_anfis(model, data, epochs=500, show_plots=False):
     '''
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.99)
     criterion = torch.nn.MSELoss(reduction='sum')
-    train_anfis_with(model, data, optimizer, criterion, epochs, show_plots=show_plots)
+    train_anfis_with(model, data, optimizer, criterion, epochs, show_plots)
 
 
 if __name__ == '__main__':

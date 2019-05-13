@@ -68,7 +68,6 @@ def make_sinc_xy2(batch_size=1024):
     return DataLoader(td, batch_size=batch_size, shuffle=True)
 
 
-
 def ex1_model():
     '''
         These are the original (untrained) MFS for Jang's example 1.

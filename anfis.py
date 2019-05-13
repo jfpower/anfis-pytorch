@@ -217,7 +217,12 @@ class ConsequentLayer(torch.nn.Module):
         weighted_x_2d = weighted_x.view(weighted_x.shape[0], -1)
         y_actual_2d = y_actual.view(y_actual.shape[0], -1)
         # Use gels to do LSE, then pick out the solution rows:
-        coeff_2d, _ = torch.gels(y_actual_2d, weighted_x_2d)
+        try:
+            coeff_2d, _ = torch.gels(y_actual_2d, weighted_x_2d)
+        except RuntimeError as e:
+            print('Internal error in gels', e)
+            print('Weights are:', weighted_x)
+            raise e
         coeff_2d = coeff_2d[0:weighted_x_2d.shape[1]]
         # Reshape to 3D tensor: divide by rules, n_in+1, then swap last 2 dims
         self.coeff = coeff_2d.view(weights.shape[1], x.shape[1]+1, -1)\
@@ -254,6 +259,19 @@ class PlainConsequentLayer(ConsequentLayer):
             coeff.shape: n_rules * n_out * (n_in+1)
         '''
         return self.coefficients
+
+    @coeff.setter
+    def coeff(self, new_coeff):
+        '''
+            Record new coefficients for all the rules
+            coeff: for each rule, for each output variable:
+                   a coefficient for each input variable, plus a constant
+        '''
+        assert new_coeff.shape == self.coeff.shape, \
+            'Coeff shape should be {}, but is actually {}'\
+            .format(self.coeff.shape, new_coeff.shape)
+        self._coeff = new_coeff
+        self.register_parameter('coefficients', torch.nn.Parameter(self._coeff))
 
     def fit_coeff(self, x, weights, y_actual):
         '''
@@ -365,3 +383,24 @@ class AnfisNet(torch.nn.Module):
         self.y_pred = y_pred.squeeze(2)
         return self.y_pred
 
+
+# These hooks are handy for debugging:
+
+def module_hook(label):
+    ''' Use this module hook like this:
+        m = AnfisNet()
+        m.layer.fuzzify.register_backward_hook(module_hook('fuzzify'))
+        m.layer.consequent.register_backward_hook(modul_hook('consequent'))
+    '''
+    return (lambda module, grad_input, grad_output:
+            print('BP for module', label,
+                  'with out grad:', grad_output,
+                  'and in grad:', grad_input))
+
+
+def tensor_hook(label):
+    '''
+        If you want something more fine-graned, attach this to a tensor.
+    '''
+    return (lambda grad:
+            print('BP for', label, 'with grad:', grad))
