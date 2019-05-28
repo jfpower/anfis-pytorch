@@ -215,7 +215,7 @@ def vignette_ex5_trained():
 
 
 if __name__ == '__main__':
-    example = '5'
+    example = '3a'
     show_plots = True
     if len(sys.argv) == 2:  # One arg: example
         example = sys.argv[1].upper()
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     elif example == '5':
         model = vignette_ex5()
         train_data = jang_examples.make_sinc_xy2()
-        train_anfis(model, train_data, 5, show_plots)
+        train_anfis(model, train_data, 50, show_plots)
     elif example == '5T':
         model = vignette_ex5_trained()
         test_data = jang_examples.make_sinc_xy2()

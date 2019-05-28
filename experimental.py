@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 
 import torch
 import torch.nn.functional as F
-from torch import autograd
 
 dtype = torch.float
 
@@ -100,7 +99,8 @@ def calc_error(y_pred, y_actual):
     with torch.no_grad():
         tot_loss = F.mse_loss(y_pred, y_actual)
         rmse = torch.sqrt(tot_loss).item()
-        perc_loss = torch.mean(100. * torch.abs((y_pred - y_actual) / y_actual))
+        perc_loss = torch.mean(100. * torch.abs((y_pred - y_actual)
+                               / y_actual))
     return(tot_loss, rmse, perc_loss)
 
 
