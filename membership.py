@@ -5,7 +5,6 @@
     @author: James Power <james.power@mu.ie> Apr 12 18:13:10 2019
 """
 
-
 import torch
 
 from anfis import AnfisNet
@@ -160,7 +159,8 @@ class TrapezoidalMembFunc(torch.nn.Module):
     @staticmethod
     def triangle(left, midpt, right):
         '''
-            Make a triangle-shaped MF as a special case of a Trapezoidal MF
+            Make a triangle-shaped MF as a special case of a Trapezoidal MF.
+            Note: this may revert to general trapezoid under learning.
         '''
         return TrapezoidalMembFunc(left, midpt, midpt, right)
 

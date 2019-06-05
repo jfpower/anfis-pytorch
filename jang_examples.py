@@ -282,7 +282,7 @@ def jang_ex4_data(filename):
 
 
 if __name__ == '__main__':
-    example = '1'
+    example = '4T'
     show_plots = True
     if len(sys.argv) == 2:  # One arg: example
         example = sys.argv[1]

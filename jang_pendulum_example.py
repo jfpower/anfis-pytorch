@@ -8,7 +8,7 @@
     @author: James Power <james.power@mu.ie> May 8 2019
 '''
 
-# The PendulumSystem module is based very roughly on 
+# The PendulumSystem module is based very roughly on:
 #   #pytorch-control-flow-weight-sharing from
 #   https://pytorch.org/tutorials/beginner/pytorch_with_examples.html
 
@@ -96,7 +96,7 @@ class Pendulum():
 
 def initial_anfis():
     '''
-        Return a (non-trained) anfis model: (theta, dtheta) -> force
+        Build and return a (non-trained) anfis model: (theta, dtheta) -> force
         Assume range for theta is (-20, 20) and dtheta is (-50, 50)
         Use 2 Bell MFs for each input, and non-hybrid learning.
     '''
@@ -134,13 +134,14 @@ def jang_traned_anfis():
 class PendulumSystem(torch.nn.Module):
     '''
         The pendulum system consists of an ANFIS controller and a pendulum.
-        We actually have one copy of the ANFIS controller for each interval.
+        We make one copy of the ANFIS controller for each time interval.
+        But: only one ANFIS object, so only one set of parameters to train.
     '''
     def __init__(self, theta=0, dtheta=0):
         super(PendulumSystem, self).__init__()
         self.anfis = initial_anfis()
         self.pendulum = Pendulum(theta, dtheta)
-        self.interval = 100
+        self.interval = 100  # Actually the number of time intervals
 
     def forward(self, x):
         '''
@@ -248,21 +249,22 @@ def train_pendulum(model, x_data, optimizer,
         plot_thetas(x_data, y_pred)
 
 
-model = PendulumSystem()
-want_training = True
-if want_training:
-    print('### TRAINING ###')
-    training_data = torch.tensor([[10, 10], [-10, 0]], dtype=dtype)
-    optimizer = torch.optim.Rprop(model.parameters(), lr=1e-2)
-    train_pendulum(model, training_data, optimizer, 30, True)
-else:  # Use the following if you want to use Jang's trained model:
-    model.anfis = jang_traned_anfis()
+if __name__ == '__main__':
+    model = PendulumSystem()
+    want_training = True
+    if want_training:
+        print('### TRAINING ###')
+        training_data = torch.tensor([[10, 10], [-10, 0]], dtype=dtype)
+        optimizer = torch.optim.Rprop(model.parameters(), lr=1e-2)
+        train_pendulum(model, training_data, optimizer, 3, True)
+    else:  # Use the following if you want to use Jang's trained model:
+        model.anfis = jang_traned_anfis()
 
-print('### TESTING ###')
-test_data = torch.tensor([[10, 20], [15, 30], [20, 40]], dtype=dtype)
-model.interval = 200
-y_pred = model(test_data)
-plot_thetas(test_data, y_pred)
+    print('### TESTING ###')
+    test_data = torch.tensor([[10, 20], [15, 30], [20, 40]], dtype=dtype)
+    model.interval = 200
+    y_pred = model(test_data)
+    plot_thetas(test_data, y_pred)
 
-print('### TRAINED MODEL ###')
-fileio.astext.show(model.anfis)
+    print('### TRAINED MODEL ###')
+    fileio.astext.show(model.anfis)

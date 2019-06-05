@@ -25,13 +25,12 @@ class FuzzifyVariable(torch.nn.Module):
         Represents a single fuzzy variable, holds a list of its MFs.
         Forward pass will then fuzzify the input (value for each MF).
     '''
-    def __init__(self, mfdefs, mfnames=None):
+    def __init__(self, mfdefs):
         super(FuzzifyVariable, self).__init__()
-        if not mfnames:
-            self.mfnames = ['mf{}'.format(i) for i in range(len(mfdefs))]
-        else:
-            self.mfnames = list(mfnames)
-        self.mfdefs = torch.nn.ModuleDict(zip(self.mfnames, mfdefs))
+        if isinstance(mfdefs, list):  # No MF names supplied
+            mfnames = ['mf{}'.format(i) for i in range(len(mfdefs))]
+            mfdefs = OrderedDict(zip(mfnames, mfdefs))
+        self.mfdefs = torch.nn.ModuleDict(mfdefs)
         self.padding = 0
 
     @property
@@ -102,15 +101,19 @@ class FuzzifyLayer(torch.nn.Module):
         ''' Return the max number of MFs in any variable'''
         return max([var.num_mfs for var in self.varmfs.values()])
 
-    def show(self):
+    def __repr__(self):
         '''
             Print the variables, MFS and their parameters (for info only)
         '''
+        r = ['Input variables']
         for varname, members in self.varmfs.items():
-            print(varname)
+            r.append('Variable {}'.format(varname))
             for mfname, mfdef in members.mfdefs.items():
-                print('{}: {}'.format(mfname,
-                      [(n, p.item()) for n, p in mfdef.named_parameters()]))
+                r.append('- {}: {}({})'.format(mfname,
+                         mfdef.__class__.__name__,
+                         ', '.join(['{}={}'.format(n, p.item())
+                                   for n, p in mfdef.named_parameters()])))
+        return '\n'.join(r)
 
     def forward(self, x):
         ''' Fuzzyify each variable's value using each of its corresponding mfs.
@@ -135,14 +138,16 @@ class AntecedentLayer(torch.nn.Module):
         # Count the (actual) mfs for each variable:
         mf_count = [var.num_mfs for var in varlist]
         # Now make the MF indices for each rule:
-        indices = itertools.product(*[range(n) for n in mf_count])
-        self.indices = torch.tensor(list(indices))
-        # indices.shape is n_rules * n_in
+        mf_indices = itertools.product(*[range(n) for n in mf_count])
+        self.mf_indices = torch.tensor(list(mf_indices))
+        # mf_indices.shape is n_rules * n_in
 
     def num_rules(self):
-        return len(self.indices)
+        return len(self.mf_indices)
 
-    def show(self, varlist):
+    def extra_repr(self, varlist=None):
+        if not varlist:
+            return None
         row_ants = []
         mf_count = [len(fv.mfdefs) for fv in varlist.values()]
         for rule_idx in itertools.product(*[range(n) for n in mf_count]):
@@ -151,7 +156,7 @@ class AntecedentLayer(torch.nn.Module):
                 thisrule.append('{} is {}'
                                 .format(varname, list(fv.mfdefs.keys())[i]))
             row_ants.append(' and '.join(thisrule))
-        return row_ants
+        return '\n'.join(row_ants)
 
     def forward(self, x):
         ''' Calculate the fire-strength for (the antecedent of) each rule
@@ -159,7 +164,7 @@ class AntecedentLayer(torch.nn.Module):
             y.shape = n_cases * n_rules
         '''
         # Expand (repeat) the rule indices to equal the batch size:
-        batch_indices = self.indices.expand((x.shape[0], -1, -1))
+        batch_indices = self.mf_indices.expand((x.shape[0], -1, -1))
         # Then use these indices to populate the rule-antecedents
         ants = torch.gather(x.transpose(1, 2), 1, batch_indices)
         # ants.shape is n_cases * n_rules * n_in
@@ -250,7 +255,8 @@ class PlainConsequentLayer(ConsequentLayer):
     '''
     def __init__(self, *params):
         super(PlainConsequentLayer, self).__init__(*params)
-        self.register_parameter('coefficients', torch.nn.Parameter(self._coeff))
+        self.register_parameter('coefficients',
+                                torch.nn.Parameter(self._coeff))
 
     @property
     def coeff(self):
@@ -259,19 +265,6 @@ class PlainConsequentLayer(ConsequentLayer):
             coeff.shape: n_rules * n_out * (n_in+1)
         '''
         return self.coefficients
-
-    @coeff.setter
-    def coeff(self, new_coeff):
-        '''
-            Record new coefficients for all the rules
-            coeff: for each rule, for each output variable:
-                   a coefficient for each input variable, plus a constant
-        '''
-        assert new_coeff.shape == self.coeff.shape, \
-            'Coeff shape should be {}, but is actually {}'\
-            .format(self.coeff.shape, new_coeff.shape)
-        self._coeff = new_coeff
-        self.register_parameter('coefficients', torch.nn.Parameter(self._coeff))
 
     def fit_coeff(self, x, weights, y_actual):
         '''
@@ -361,12 +354,14 @@ class AnfisNet(torch.nn.Module):
         '''
         return self.outvarnames
 
-    def show_rules(self):
+    def extra_repr(self):
+        rstr = []
         vardefs = self.layer['fuzzify'].varmfs
-        rule_ants = self.layer['rules'].show(vardefs)
+        rule_ants = self.layer['rules'].extra_repr(vardefs).split('\n')
         for i, crow in enumerate(self.layer['consequent'].coeff):
-            print('Rule {}: IF {}'.format(i, rule_ants[i]))
-            print('\tTHEN {}'.format(crow.tolist()))
+            rstr.append('Rule {:2d}: IF {}'.format(i, rule_ants[i]))
+            rstr.append(' '*9+'THEN {}'.format(crow.tolist()))
+        return '\n'.join(rstr)
 
     def forward(self, x):
         '''

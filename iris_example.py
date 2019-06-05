@@ -84,7 +84,7 @@ def num_cat_correct(model, x, y_actual):
         Use a max function on predicted/actual to get the category.
     '''
     y_pred = model(x)
-    # Change the y-value scores back into best category:
+    # Change the y-value scores back into 'best category':
     cat_act = torch.argmax(y_actual, dim=1)
     cat_pred = torch.argmax(y_pred, dim=1)
     num_correct = torch.sum(cat_act == cat_pred)
